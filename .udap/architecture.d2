@@ -1,0 +1,22 @@
+# udap:meta cloud=aws region=us-east-1 target=ec2
+
+vpc: AWS VPC (us-east-1) {
+  ec2: EC2 t3.micro { shape: rectangle; udap-type: aws.ec2 }
+  sg: Security Group (22/80/443) { shape: rectangle; udap-type: aws.ec2 }
+}
+eip: Elastic IP { shape: rectangle; udap-type: aws.ec2 }
+nginx: nginx Reverse Proxy { shape: rectangle; udap-type: generic.app }
+fastapi: FastAPI App (systemd) { shape: rectangle; udap-type: generic.app }
+tests: API Test Framework { shape: rectangle; udap-type: generic.app }
+reports: HTML + Markdown Reports { shape: rectangle; udap-type: aws.s3 }
+postman: Postman Collection { shape: rectangle; udap-type: generic.app }
+user: Client { shape: person; udap-type: generic.user }
+
+user -> eip: HTTPS :443 / HTTP :80
+eip -> vpc.ec2: routes to
+vpc.ec2 -> nginx: serves
+nginx -> fastapi: proxy_pass :8000
+fastapi -> tests: endpoint discovery
+tests -> reports: generate reports
+tests -> postman: export collection
+vpc.sg -> vpc.ec2: enforces

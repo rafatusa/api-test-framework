@@ -1,0 +1,213 @@
+version: 1
+name: api-test-framework
+vcs: github
+
+rollback:
+  strategy: manual
+
+stages:
+  - id: lint
+    kind: lint
+    needs: []
+    timeout_minutes: 10
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install linters
+        run: pip install flake8 black isort
+      - name: Run flake8
+        run: flake8 app/ tests/ --max-line-length=120 --exclude=__pycache__,migrations
+      - name: Check black formatting
+        run: black --check app/ tests/
+      - name: Check import order
+        run: isort --check-only app/ tests/
+
+  - id: test
+    kind: test
+    needs: [lint]
+    timeout_minutes: 15
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --tb=short
+
+  - id: provision
+    kind: provision
+    needs: [test]
+    timeout_minutes: 30
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-1
+      TF_VAR_project_name: ${{ secrets.PROJECT_NAME }}
+      TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+    outputs:
+      instance_ip: ${{ steps.tf_output.outputs.instance_ip }}
+    steps:
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Terraform Init
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ secrets.PROJECT_NAME }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+        working-directory: infra
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve
+        working-directory: infra
+      - name: Get Outputs
+        id: tf_output
+        run: |
+          ip=$(terraform output -raw instance_ip)
+          echo "instance_ip=$ip" >> "$GITHUB_OUTPUT"
+        working-directory: infra
+
+  - id: configure
+    kind: configure
+    needs: [provision]
+    timeout_minutes: 30
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Ansible
+        run: pip install ansible-core
+      - name: Write SSH key
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+      - name: Scan host key
+        run: |
+          ssh-keyscan -H "${{ needs.provision.outputs.instance_ip }}" >> ~/.ssh/known_hosts
+      - name: Write inventory
+        run: |
+          printf '[api]\n%s ansible_user=%s ansible_ssh_private_key_file=~/.ssh/deploy_key\n' \
+            "${{ needs.provision.outputs.instance_ip }}" \
+            "${{ secrets.SSH_USER }}" > ansible/inventory.ini
+      - name: Run Ansible playbook
+        run: ansible-playbook -i ansible/inventory.ini ansible/site.yml
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+
+  - id: verify
+    kind: verify
+    needs: [configure, provision]
+    timeout_minutes: 10
+    steps:
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Re-read instance IP
+        id: tf_ip
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ secrets.PROJECT_NAME }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+          ip=$(terraform output -raw instance_ip)
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+        working-directory: infra
+      - name: Health check with retries
+        run: |
+          curl --fail --retry 15 --retry-delay 15 --retry-all-errors \
+            http://${{ steps.tf_ip.outputs.ip }}/health
+
+  - id: api_tests
+    kind: e2e
+    needs: [verify, provision]
+    timeout_minutes: 30
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Re-read instance IP
+        id: tf_ip
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ secrets.PROJECT_NAME }}/terraform.tfstate" \
+            -backend-config="region=us-east-1"
+          ip=$(terraform output -raw instance_ip)
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+        working-directory: infra
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
+      - name: Create reports directory
+        run: mkdir -p reports
+      - name: Run API test suite
+        run: |
+          pytest tests/api/ -v \
+            --base-url="http://${{ steps.tf_ip.outputs.ip }}" \
+            --html=reports/test-report.html \
+            --self-contained-html \
+            --md-report \
+            --md-report-output=reports/test-report.md \
+            --tb=short \
+            -p no:warnings
+        env:
+          API_BASE_URL: "http://${{ steps.tf_ip.outputs.ip }}"
+      - name: Generate Postman collection
+        run: |
+          python scripts/generate_postman.py \
+            --base-url "http://${{ steps.tf_ip.outputs.ip }}" \
+            --output reports/postman_collection.json
+        env:
+          API_BASE_URL: "http://${{ steps.tf_ip.outputs.ip }}"
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
+          retention-days: 30
+
+destroy:
+  env:
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    AWS_REGION: us-east-1
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+    - name: Terraform Init
+      run: |
+        terraform init -input=false -reconfigure \
+          -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+          -backend-config="key=${{ secrets.PROJECT_NAME }}/terraform.tfstate" \
+          -backend-config="region=us-east-1"
+      working-directory: infra
+    - name: Terraform Destroy
+      run: terraform destroy -input=false -auto-approve
+      working-directory: infra

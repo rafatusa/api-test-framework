@@ -1,0 +1,138 @@
+---
+- name: Configure API Test Framework server
+  hosts: api
+  become: true
+
+  vars:
+    app_dir: /opt/app
+    venv_dir: /opt/app/venv
+    app_user: ubuntu
+
+  tasks:
+    - name: Wait for apt lock to clear (cloud-init race)
+      ansible.builtin.command:
+        cmd: apt-get check
+      register: apt_check
+      retries: 10
+      delay: 10
+      until: apt_check.rc == 0
+      changed_when: false
+
+    - name: Install runtime packages
+      ansible.builtin.apt:
+        name:
+          - python3-venv
+          - python3-pip
+          - nginx
+        state: present
+        update_cache: true
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0755"
+
+    - name: Copy application source
+      ansible.builtin.copy:
+        src: ../app/
+        dest: "{{ app_dir }}/app/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+
+    - name: Copy requirements.txt
+      ansible.builtin.copy:
+        src: ../requirements.txt
+        dest: "{{ app_dir }}/requirements.txt"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+
+    - name: Create Python virtualenv
+      ansible.builtin.command:
+        cmd: python3 -m venv "{{ venv_dir }}"
+        creates: "{{ venv_dir }}/bin/python"
+      become_user: "{{ app_user }}"
+
+    - name: Upgrade pip in venv
+      ansible.builtin.command:
+        cmd: "{{ venv_dir }}/bin/pip install --quiet --upgrade pip"
+      changed_when: false
+      become_user: "{{ app_user }}"
+
+    - name: Install Python dependencies into venv
+      ansible.builtin.command:
+        cmd: "{{ venv_dir }}/bin/pip install --quiet -r {{ app_dir }}/requirements.txt"
+      changed_when: false
+      become_user: "{{ app_user }}"
+
+    - name: Write application .env file
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0600"
+        content: |
+          JWT_SECRET_KEY={{ lookup('env', 'JWT_SECRET_KEY') }}
+      no_log: true
+
+    - name: Install systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/app.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=API Test Framework (FastAPI/Uvicorn)
+          After=network.target
+
+          [Service]
+          User={{ app_user }}
+          WorkingDirectory={{ app_dir }}
+          EnvironmentFile={{ app_dir }}/.env
+          ExecStart={{ venv_dir }}/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Install nginx site config
+      ansible.builtin.copy:
+        dest: /etc/nginx/sites-available/default
+        mode: "0644"
+        content: |
+          server {
+              listen 80 default_server;
+              listen [::]:80 default_server;
+
+              location / {
+                  proxy_pass         http://127.0.0.1:8000;
+                  proxy_set_header   Host              $host;
+                  proxy_set_header   X-Real-IP         $remote_addr;
+                  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+                  proxy_read_timeout 60s;
+              }
+          }
+
+    - name: Enable and restart application service
+      ansible.builtin.systemd:
+        name: app
+        state: restarted
+        enabled: true
+        daemon_reload: true
+
+    - name: Enable and restart nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: true
+
+    - name: Wait for app to be listening on port 8000
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        timeout: 60
+        state: started

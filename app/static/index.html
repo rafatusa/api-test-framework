@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Test Framework</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      background: #1e293b; border-radius: 12px; padding: 2.5rem 3rem;
+      max-width: 680px; width: 100%; box-shadow: 0 4px 32px rgba(0,0,0,.4);
+    }
+    h1 { font-size: 2rem; font-weight: 700; color: #38bdf8; margin-bottom: .5rem; }
+    .subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 1.05rem; }
+    .badge {
+      display: inline-block; background: #0f766e; color: #ccfbf1;
+      font-size: .75rem; font-weight: 600; padding: .2rem .6rem;
+      border-radius: 999px; margin-bottom: 1.5rem;
+    }
+    .links { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .links a {
+      background: #334155; color: #e2e8f0; text-decoration: none;
+      padding: .5rem 1.25rem; border-radius: 6px; font-size: .9rem;
+      transition: background .15s;
+    }
+    .links a:hover { background: #475569; }
+    .endpoints { border-top: 1px solid #334155; padding-top: 1.5rem; }
+    .endpoints h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .05em; }
+    .ep { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; font-size: .9rem; }
+    .method {
+      font-weight: 700; font-size: .75rem; padding: .15rem .5rem;
+      border-radius: 4px; min-width: 54px; text-align: center;
+    }
+    .get { background: #1d4ed8; color: #bfdbfe; }
+    .post { background: #15803d; color: #bbf7d0; }
+    .patch { background: #92400e; color: #fef3c7; }
+    .delete { background: #991b1b; color: #fee2e2; }
+    .path { color: #cbd5e1; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">v1.0.0 · FastAPI</span>
+    <h1>API Test Framework</h1>
+    <p class="subtitle">
+      A reference REST API with items, users, and JWT authentication —
+      built to exercise a comprehensive automated test suite.
+    </p>
+    <div class="links">
+      <a href="/docs">Swagger UI</a>
+      <a href="/redoc">ReDoc</a>
+      <a href="/openapi.json">OpenAPI JSON</a>
+      <a href="/health">Health</a>
+    </div>
+    <div class="endpoints">
+      <h2>Key Endpoints</h2>
+      <div class="ep"><span class="method post">POST</span><span class="path">/auth/token</span></div>
+      <div class="ep"><span class="method get">GET</span><span class="path">/auth/me</span></div>
+      <div class="ep"><span class="method get">GET</span><span class="path">/items/</span></div>
+      <div class="ep"><span class="method post">POST</span><span class="path">/items/</span></div>
+      <div class="ep"><span class="method patch">PATCH</span><span class="path">/items/{id}</span></div>
+      <div class="ep"><span class="method delete">DELETE</span><span class="path">/items/{id}</span></div>
+      <div class="ep"><span class="method get">GET</span><span class="path">/users/</span></div>
+      <div class="ep"><span class="method post">POST</span><span class="path">/users/</span></div>
+      <div class="ep"><span class="method patch">PATCH</span><span class="path">/users/{username}</span></div>
+      <div class="ep"><span class="method delete">DELETE</span><span class="path">/users/{username}</span></div>
+    </div>
+  </div>
+</body>
+</html>
