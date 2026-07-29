@@ -20,7 +20,7 @@ jobs:
     - name: Sort imports with isort
       run: isort app/ tests/
     - name: Run flake8
-      run: flake8 app/ tests/ --max-line-length=120 --exclude=__pycache__,migrations
+      run: flake8 app/ tests/ --max-line-length=120 --extend-ignore=E203 --exclude=__pycache__,migrations
   test:
     runs-on: ubuntu-latest
     needs:
