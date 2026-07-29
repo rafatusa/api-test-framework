@@ -107,16 +107,26 @@ class TestCreateItem:
         assert resp.status_code == 422
 
     def test_create_item_empty_title_returns_422(self, client, alice_headers):
-        resp = client.post("/items/", json={"title": "  ", "price": 5.00}, headers=alice_headers)
+        resp = client.post(
+            "/items/",
+            json={"title": "  ", "price": 5.00},
+            headers=alice_headers,
+        )
         assert resp.status_code == 422
 
     def test_create_item_negative_price_returns_422(self, client, alice_headers):
-        resp = client.post("/items/", json={"title": "Bad", "price": -1.00}, headers=alice_headers)
+        resp = client.post(
+            "/items/",
+            json={"title": "Bad", "price": -1.00},
+            headers=alice_headers,
+        )
         assert resp.status_code == 422
 
     def test_create_item_title_too_long_returns_422(self, client, alice_headers):
         resp = client.post(
-            "/items/", json={"title": "x" * 101, "price": 1.00}, headers=alice_headers
+            "/items/",
+            json={"title": "x" * 101, "price": 1.00},
+            headers=alice_headers,
         )
         assert resp.status_code == 422
 
@@ -126,23 +136,39 @@ class TestCreateItem:
 
     def test_create_item_response_time_under_500ms(self, client, alice_headers):
         start = time.monotonic()
-        client.post("/items/", json={"title": "Perf Item", "price": 1.00}, headers=alice_headers)
+        client.post(
+            "/items/",
+            json={"title": "Perf Item", "price": 1.00},
+            headers=alice_headers,
+        )
         elapsed_ms = (time.monotonic() - start) * 1000
         assert elapsed_ms < 500, f"Create item took {elapsed_ms:.0f}ms"
 
 
 class TestUpdateItem:
     def test_owner_can_update_own_item(self, client, alice_headers):
-        resp = client.patch("/items/1", json={"title": "Updated Title"}, headers=alice_headers)
+        resp = client.patch(
+            "/items/1",
+            json={"title": "Updated Title"},
+            headers=alice_headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["title"] == "Updated Title"
 
     def test_non_owner_cannot_update_returns_403(self, client, bob_headers):
-        resp = client.patch("/items/1", json={"title": "Bob hijack"}, headers=bob_headers)
+        resp = client.patch(
+            "/items/1",
+            json={"title": "Bob hijack"},
+            headers=bob_headers,
+        )
         assert resp.status_code == 403
 
     def test_update_nonexistent_item_returns_404(self, client, alice_headers):
-        resp = client.patch("/items/99999", json={"title": "Ghost"}, headers=alice_headers)
+        resp = client.patch(
+            "/items/99999",
+            json={"title": "Ghost"},
+            headers=alice_headers,
+        )
         assert resp.status_code == 404
 
     def test_update_no_auth_returns_403(self, client):
@@ -152,9 +178,10 @@ class TestUpdateItem:
 
 class TestDeleteItem:
     def test_owner_can_delete_own_item(self, client, alice_headers):
-        # Create a fresh item to delete so we don't break other tests
         create_resp = client.post(
-            "/items/", json={"title": "To Delete", "price": 0.01}, headers=alice_headers
+            "/items/",
+            json={"title": "To Delete", "price": 0.01},
+            headers=alice_headers,
         )
         item_id = create_resp.json()["id"]
         delete_resp = client.delete(f"/items/{item_id}", headers=alice_headers)

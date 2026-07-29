@@ -23,8 +23,20 @@ fake_users_db: dict = {
 
 # Keyed by item id
 fake_items_db: dict = {
-    1: {"id": 1, "title": "Item One", "description": "First item", "price": 9.99, "owner": "alice"},
-    2: {"id": 2, "title": "Item Two", "description": "Second item", "price": 19.99, "owner": "bob"},
+    1: {
+        "id": 1,
+        "title": "Item One",
+        "description": "First item",
+        "price": 9.99,
+        "owner": "alice",
+    },
+    2: {
+        "id": 2,
+        "title": "Item Two",
+        "description": "Second item",
+        "price": 19.99,
+        "owner": "bob",
+    },
 }
 
 _next_item_id: int = 3

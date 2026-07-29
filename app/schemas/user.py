@@ -1,5 +1,6 @@
 """User Pydantic schemas."""
 from typing import Optional
+
 from pydantic import BaseModel, EmailStr, field_validator
 
 
@@ -12,7 +13,9 @@ class UserCreate(BaseModel):
     @classmethod
     def username_alphanumeric(cls, v: str) -> str:
         if not v.replace("_", "").replace("-", "").isalnum():
-            raise ValueError("Username must be alphanumeric (hyphens/underscores allowed)")
+            raise ValueError(
+                "Username must be alphanumeric (hyphens/underscores allowed)"
+            )
         if len(v) < 3 or len(v) > 32:
             raise ValueError("Username must be 3-32 characters")
         return v

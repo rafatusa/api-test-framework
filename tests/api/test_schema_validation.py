@@ -6,6 +6,7 @@ Fetches /openapi.json and validates that:
 - Request bodies match the declared schema
 - Responses match the declared schema
 """
+import uuid
 
 
 class TestOpenAPISchema:
@@ -93,11 +94,14 @@ class TestResponseSchemaCompliance:
         assert isinstance(resp["owner"], str)
 
     def test_user_create_response_has_no_password(self, client):
-        import uuid
         username = f"sv_{uuid.uuid4().hex[:6]}"
         resp = client.post(
             "/users/",
-            json={"username": username, "email": f"{username}@test.com", "password": "password123"},
+            json={
+                "username": username,
+                "email": f"{username}@test.com",
+                "password": "password123",
+            },
         ).json()
         assert "hashed_password" not in resp
         assert "password" not in resp

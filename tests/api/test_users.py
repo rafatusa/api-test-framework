@@ -44,7 +44,11 @@ class TestCreateUser:
         username = self._unique_username()
         resp = client.post(
             "/users/",
-            json={"username": username, "email": f"{username}@test.com", "password": "password123"},
+            json={
+                "username": username,
+                "email": f"{username}@test.com",
+                "password": "password123",
+            },
         )
         assert resp.status_code == 201
 
@@ -52,7 +56,11 @@ class TestCreateUser:
         username = self._unique_username()
         resp = client.post(
             "/users/",
-            json={"username": username, "email": f"{username}@test.com", "password": "password123"},
+            json={
+                "username": username,
+                "email": f"{username}@test.com",
+                "password": "password123",
+            },
         )
         body = resp.json()
         assert all(k in body for k in ("id", "username", "email", "is_active", "role"))
@@ -61,14 +69,22 @@ class TestCreateUser:
     def test_create_duplicate_user_returns_409(self, client):
         resp = client.post(
             "/users/",
-            json={"username": "alice", "email": "alice2@test.com", "password": "password123"},
+            json={
+                "username": "alice",
+                "email": "alice2@test.com",
+                "password": "password123",
+            },
         )
         assert resp.status_code == 409
 
     def test_create_user_invalid_email_returns_422(self, client):
         resp = client.post(
             "/users/",
-            json={"username": "newuser1", "email": "not-an-email", "password": "password123"},
+            json={
+                "username": "newuser1",
+                "email": "not-an-email",
+                "password": "password123",
+            },
         )
         assert resp.status_code == 422
 
@@ -121,43 +137,56 @@ class TestGetUser:
 class TestUpdateUser:
     def test_user_can_update_own_email(self, client, bob_headers):
         resp = client.patch(
-            "/users/bob", json={"email": "bob_updated@test.com"}, headers=bob_headers
+            "/users/bob",
+            json={"email": "bob_updated@test.com"},
+            headers=bob_headers,
         )
         assert resp.status_code == 200
         assert resp.json()["email"] == "bob_updated@test.com"
 
     def test_admin_can_update_any_user(self, client, alice_headers):
         resp = client.patch(
-            "/users/bob", json={"is_active": True}, headers=alice_headers
+            "/users/bob",
+            json={"is_active": True},
+            headers=alice_headers,
         )
         assert resp.status_code == 200
 
     def test_non_admin_cannot_update_other_user(self, client, bob_headers):
         resp = client.patch(
-            "/users/alice", json={"email": "bob_hijack@test.com"}, headers=bob_headers
+            "/users/alice",
+            json={"email": "bob_hijack@test.com"},
+            headers=bob_headers,
         )
         assert resp.status_code == 403
 
     def test_update_nonexistent_user_returns_404(self, client, alice_headers):
         resp = client.patch(
-            "/users/nobody_here", json={"email": "x@test.com"}, headers=alice_headers
+            "/users/nobody_here",
+            json={"email": "x@test.com"},
+            headers=alice_headers,
         )
         assert resp.status_code == 404
 
     def test_update_invalid_email_returns_422(self, client, bob_headers):
         resp = client.patch(
-            "/users/bob", json={"email": "not-an-email"}, headers=bob_headers
+            "/users/bob",
+            json={"email": "not-an-email"},
+            headers=bob_headers,
         )
         assert resp.status_code == 422
 
 
 class TestDeleteUser:
     def test_admin_can_delete_user(self, client, alice_headers):
-        # Create a throwaway user to delete
         username = f"del_{uuid.uuid4().hex[:6]}"
         client.post(
             "/users/",
-            json={"username": username, "email": f"{username}@test.com", "password": "password123"},
+            json={
+                "username": username,
+                "email": f"{username}@test.com",
+                "password": "password123",
+            },
         )
         resp = client.delete(f"/users/{username}", headers=alice_headers)
         assert resp.status_code == 204

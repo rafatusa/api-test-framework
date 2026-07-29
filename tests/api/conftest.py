@@ -19,17 +19,21 @@ from app.main import app as fastapi_app
 
 # ── pytest CLI option ──────────────────────────────────────────────────────────
 
+
 def pytest_addoption(parser):
     parser.addoption(
         "--base-url",
         action="store",
         default=None,
-        help="Base URL of the deployed API (e.g. http://1.2.3.4). "
-             "Falls back to API_BASE_URL env var, then TestClient.",
+        help=(
+            "Base URL of the deployed API (e.g. http://1.2.3.4). "
+            "Falls back to API_BASE_URL env var, then TestClient."
+        ),
     )
 
 
 # ── Base URL fixture ───────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def base_url(request) -> str:
@@ -42,6 +46,7 @@ def base_url(request) -> str:
 
 
 # ── HTTP client fixtures ───────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def client(base_url) -> Generator:
@@ -56,7 +61,6 @@ def client(base_url) -> Generator:
         session = requests.Session()
         session.base_url = base_url  # type: ignore[attr-defined]
 
-        # Monkey-patch so tests can call client.get("/path") regardless of driver
         original_get = session.get
         original_post = session.post
         original_patch = session.patch
@@ -84,16 +88,23 @@ def client(base_url) -> Generator:
 
 # ── Auth token fixtures ────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def alice_token(client) -> str:
-    resp = client.post("/auth/token", json={"username": "alice", "password": "alicepassword123"})
+    resp = client.post(
+        "/auth/token",
+        json={"username": "alice", "password": "alicepassword123"},
+    )
     assert resp.status_code == 200, f"Alice login failed: {resp.text}"
     return resp.json()["access_token"]
 
 
 @pytest.fixture(scope="session")
 def bob_token(client) -> str:
-    resp = client.post("/auth/token", json={"username": "bob", "password": "bobpassword456"})
+    resp = client.post(
+        "/auth/token",
+        json={"username": "bob", "password": "bobpassword456"},
+    )
     assert resp.status_code == 200, f"Bob login failed: {resp.text}"
     return resp.json()["access_token"]
 

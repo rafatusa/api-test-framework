@@ -18,7 +18,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    subject: str, expires_delta: Optional[timedelta] = None
+) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=JWT_EXPIRE_MINUTES)
     )

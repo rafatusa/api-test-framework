@@ -1,8 +1,7 @@
 """FastAPI dependency: extract and validate Bearer token → current user."""
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-import jwt
 
 from app.core.security import decode_access_token
 from app.db import fake_users_db

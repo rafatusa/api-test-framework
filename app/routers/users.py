@@ -42,11 +42,15 @@ def get_user(username: str, _: dict = Depends(get_current_user)) -> UserResponse
     """Fetch a single user by username (requires authentication)."""
     user = fake_users_db.get(username)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     return UserResponse(**user)
 
 
-@router.patch("/{username}", response_model=UserResponse, status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{username}", response_model=UserResponse, status_code=status.HTTP_200_OK
+)
 def update_user(
     username: str,
     body: UserUpdate,
@@ -55,7 +59,9 @@ def update_user(
     """Update a user's email or active status (owner or admin only)."""
     user = fake_users_db.get(username)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     if current_user["username"] != username and current_user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -80,5 +86,7 @@ def delete_user(
             detail="Admin role required",
         )
     if username not in fake_users_db:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     del fake_users_db[username]

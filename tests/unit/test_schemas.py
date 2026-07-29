@@ -2,9 +2,9 @@
 import pytest
 from pydantic import ValidationError
 
+from app.schemas.auth import TokenRequest
 from app.schemas.item import ItemCreate
 from app.schemas.user import UserCreate
-from app.schemas.auth import TokenRequest
 
 # Test credential constants — not real secrets, used only in schema validation tests
 VALID_PASS = "validpassword99"

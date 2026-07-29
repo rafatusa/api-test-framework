@@ -20,7 +20,7 @@ def list_items(
     items = list(fake_items_db.values())
     if owner:
         items = [i for i in items if i["owner"] == owner]
-    return [ItemResponse(**i) for i in items[skip: skip + limit]]
+    return [ItemResponse(**i) for i in items[skip : skip + limit]]
 
 
 @router.post("/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
@@ -46,7 +46,9 @@ def get_item(item_id: int) -> ItemResponse:
     """Fetch a single item by ID. No auth required."""
     item = fake_items_db.get(item_id)
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
     return ItemResponse(**item)
 
 
@@ -59,7 +61,9 @@ def update_item(
     """Update an item (owner or admin only)."""
     item = fake_items_db.get(item_id)
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
     if item["owner"] != current_user["username"] and current_user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -82,7 +86,9 @@ def delete_item(
     """Delete an item (owner or admin only)."""
     item = fake_items_db.get(item_id)
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
     if item["owner"] != current_user["username"] and current_user["role"] != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

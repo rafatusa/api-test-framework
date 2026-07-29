@@ -61,7 +61,9 @@ class TestWriteResponseTimes:
     def test_create_item_single_call(self, client, alice_headers):
         ms = _elapsed_ms(
             lambda: client.post(
-                "/items/", json={"title": "Perf create", "price": 1.0}, headers=alice_headers
+                "/items/",
+                json={"title": "Perf create", "price": 1.0},
+                headers=alice_headers,
             )
         )
         assert ms < THRESHOLD_WRITE_MS, f"POST /items/ took {ms:.0f}ms"
@@ -69,7 +71,9 @@ class TestWriteResponseTimes:
     def test_update_item_single_call(self, client, alice_headers):
         ms = _elapsed_ms(
             lambda: client.patch(
-                "/items/1", json={"title": "Perf update"}, headers=alice_headers
+                "/items/1",
+                json={"title": "Perf update"},
+                headers=alice_headers,
             )
         )
         assert ms < THRESHOLD_WRITE_MS, f"PATCH /items/1 took {ms:.0f}ms"
@@ -78,7 +82,9 @@ class TestWriteResponseTimes:
         timings = [
             _elapsed_ms(
                 lambda: client.post(
-                    "/items/", json={"title": "Perf p95", "price": 1.0}, headers=alice_headers
+                    "/items/",
+                    json={"title": "Perf p95", "price": 1.0},
+                    headers=alice_headers,
                 )
             )
             for _ in range(REPEAT)

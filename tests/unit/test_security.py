@@ -2,13 +2,13 @@
 import pytest
 import jwt
 
+from app.core.config import JWT_ALGORITHM
 from app.core.security import (
     create_access_token,
     decode_access_token,
     hash_password,
     verify_password,
 )
-from app.core.config import JWT_ALGORITHM
 
 
 class TestPasswordHashing:

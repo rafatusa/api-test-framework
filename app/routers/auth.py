@@ -1,8 +1,8 @@
 """Auth router — JWT login and current-user endpoint."""
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.security import create_access_token, verify_password
 from app.core.deps import get_current_user
+from app.core.security import create_access_token, verify_password
 from app.db import fake_users_db
 from app.schemas.auth import TokenRequest, TokenResponse
 from app.schemas.user import UserResponse

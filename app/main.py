@@ -1,11 +1,12 @@
 """API Test Framework — FastAPI application entry point."""
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from app.routers import items, users, auth
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+
 from app.core.errors import register_error_handlers
+from app.routers import auth, items, users
 
 app = FastAPI(
     title="API Test Framework",
