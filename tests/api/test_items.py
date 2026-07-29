@@ -1,6 +1,5 @@
 """Items endpoint tests — CRUD, auth, pagination, negative cases."""
 import time
-import pytest
 
 
 class TestListItems:

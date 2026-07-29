@@ -8,7 +8,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.core.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from app.core.config import JWT_ALGORITHM
 
 
 class TestPasswordHashing:

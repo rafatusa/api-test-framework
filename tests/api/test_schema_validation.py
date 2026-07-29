@@ -4,10 +4,8 @@ OpenAPI schema validation tests.
 Fetches /openapi.json and validates that:
 - All expected routes are present
 - Request bodies match the declared schema
-- Responses match the declared schema using jsonschema
+- Responses match the declared schema
 """
-import jsonschema
-import pytest
 
 
 class TestOpenAPISchema:
@@ -86,10 +84,8 @@ class TestResponseSchemaCompliance:
     def test_item_response_matches_item_schema(self, client):
         resp = client.get("/items/1").json()
         item_schema = self._get_component_schema(client, "ItemResponse")
-        # Build a simplified validator from the schema fields
-        required = item_schema.get("required", [])
-        properties = item_schema.get("properties", {})
-        for field in required:
+        required_fields = item_schema.get("required", [])
+        for field in required_fields:
             assert field in resp, f"Required field '{field}' missing from item response"
         assert isinstance(resp["id"], int)
         assert isinstance(resp["title"], str)

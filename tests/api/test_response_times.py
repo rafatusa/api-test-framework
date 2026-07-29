@@ -10,10 +10,7 @@ Thresholds:
 All times measured wall-clock on the CI runner (allow ample margin for
 network latency to the EC2 instance).
 """
-import statistics
 import time
-
-import pytest
 
 THRESHOLD_READ_MS = 500
 THRESHOLD_WRITE_MS = 1000
