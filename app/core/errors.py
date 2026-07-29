@@ -7,15 +7,35 @@ from fastapi.responses import JSONResponse
 
 
 def _safe_errors(exc: RequestValidationError) -> list:
-    """Convert Pydantic v2 validation errors to a JSON-safe list."""
+    """Convert Pydantic v2 validation errors to a JSON-safe list.
+
+    Pydantic v2 error objects can contain non-serialisable types such as
+    PydanticUndefined in the 'input' field.  We round-trip through json.dumps
+    with default=str to coerce every value to a primitive, then parse back so
+    the response body stays a proper list-of-dicts rather than a raw string.
+    """
     try:
-        raw = exc.errors()
-        # Pydantic v2 errors may contain non-serialisable objects (e.g. PydanticUndefined)
-        # Round-trip through JSON with a default converter to catch them.
-        json.dumps(raw, default=str)
-        return raw
+        # include_url=False drops the pydantic docs URL (not needed in API responses)
+        raw = exc.errors(include_url=False)
+    except TypeError:
+        # older pydantic / passlib shim that doesn't accept include_url
+        try:
+            raw = exc.errors()
+        except Exception:
+            return [{"msg": str(exc)}]
+
+    try:
+        serialised = json.dumps(raw, default=str)
+        return json.loads(serialised)
     except Exception:
-        return [{"msg": str(e) for e in exc.errors()}]
+        # absolute last resort — turn each error into a plain string dict
+        result = []
+        for e in raw:
+            try:
+                result.append({"msg": str(e)})
+            except Exception:
+                result.append({"msg": "validation error"})
+        return result
 
 
 def register_error_handlers(app: FastAPI) -> None:

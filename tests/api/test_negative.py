@@ -49,9 +49,10 @@ class TestInvalidPayloads:
         assert resp.status_code == 422
 
     def test_request_body_string_returns_422(self, client, alice_headers):
+        # Use data= (requests kwarg) not content= (httpx kwarg) to send a raw body
         resp = client.post(
             "/items/",
-            content='"just a string"',
+            data='"just a string"',
             headers={**alice_headers, "Content-Type": "application/json"},
         )
         assert resp.status_code == 422
